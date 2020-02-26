@@ -1,0 +1,49 @@
+<?php
+
+class DictionaryModel extends Model {
+    public function search() {
+
+        $lemma = $_GET['id'];
+
+        // GET wordid
+        $this->query("SELECT wordid FROM words WHERE lemma='{$lemma}' ");
+        $wordid = $this->single();
+        $wordid = (string)$wordid['wordid'];
+
+        // GET all senses that have wordid = $wordid
+        $this->query("SELECT wordid, synsetid FROM senses WHERE wordid={$wordid}");
+        $senses = $this->resultSet();
+
+        $rows = array();
+        foreach($senses as $sense) {
+            $this->query("SELECT synsetid, pos, definition FROM synsets WHERE synsetid='{$sense['synsetid']}'");
+            $synset = $this->single();
+            $synset['synonyms'] = array();
+            $this->query("SELECT wordid FROM senses WHERE synsetid={$sense['synsetid']}");
+            $synonyms = $this->resultSet();
+            foreach($synonyms as $synonym) {
+                $this->query("SELECT lemma FROM words WHERE wordid={$synonym['wordid']}");
+                $synonym = $this->single();
+                array_push($synset['synonyms'], $synonym['lemma']);
+            }
+            array_push($rows, $synset);
+        }
+        /*
+        foreach($rows as $row) {
+            $row['synonyms'] = array();
+            $this->query("SELECT wordid FROM senses WHERE synsetid={$row['synsetid']}");
+            $synonyms = $this->resultSet();
+            foreach($synonyms as $synonym) {
+                $this->query("SELECT lemma FROM words WHERE wordid={$synonym['wordid']}");
+                $synonym = $this->single();
+                array_push($row['synonyms'], $synonym['lemma']);
+            }
+
+            //print_r($row['synonyms']);
+            //echo "<br>";
+        }
+        */
+
+        return $rows;
+    }
+}
